@@ -1,3 +1,2 @@
-pub fn log(message: &str) {
-    println!("[LOG]: {}", message);
-}
+
+pub mod logger;
