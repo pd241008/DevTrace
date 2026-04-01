@@ -8,14 +8,17 @@ impl Response {
         let status_text = match self.status {
             200 => "OK",
             404 => "Not Found",
+            400 => "Bad Request",
             _ => "Unknown",
         };
-        
+
+        let body_bytes = self.body.as_bytes();
+
         format!(
-            "HTTP/1.1 {} {}\r\nContent-Length: {}\r\n\r\n{}",
+            "HTTP/1.1 {} {}\r\nContent-Length: {}\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n{}",
             self.status,
             status_text,
-            self.body.len(),
+            body_bytes.len(),
             self.body
         )
     }
