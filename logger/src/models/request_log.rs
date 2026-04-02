@@ -15,31 +15,3 @@ pub struct Request {
     pub body: Option<String>,
     pub timestamp: u128,
 }
-
-impl Request {
-    pub fn parse(request_line: &str) -> Option<Self> {
-        let mut parts = request_line.split_whitespace();
-
-        let method = match parts.next()? {
-            "GET" => Method::GET,
-            "POST" => Method::POST,
-            _ => return None,
-        };
-
-        let path = parts.next()?.to_string();
-        let _version = parts.next()?; // ensure HTTP version
-
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_millis())
-            .unwrap_or(0);
-
-        Some(Request {
-            method,
-            path,
-            headers: HashMap::new(),
-            body: None,
-            timestamp,
-        })
-    }
-}
