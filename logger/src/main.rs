@@ -4,8 +4,11 @@ mod proxy;
 mod logger;
 
 use crate::proxy::server;
+use crate::logger::store::LogStore;
+use std::sync::Arc;
 
 fn main() {
-    
-    server::start("8080");
+    let store = Arc::new(LogStore::new());
+
+    server::start("8080", store);
 }

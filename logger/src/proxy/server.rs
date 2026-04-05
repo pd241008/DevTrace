@@ -1,11 +1,13 @@
 use std::net::TcpListener;
+use std::sync::Arc;
 
-use crate::api::router::Router;
-use crate::api::route::{root_handler, hello_handler, about_handler};
-use crate::models::request_log::Method;
+use crate::logger::store::LogStore;
+use crate::models::request::Method;
 use crate::proxy::handler;
+use crate::api::router::Router;
+use crate::api::routes::{root_handler, hello_handler, about_handler};
 
-pub fn start(port: &str) {
+pub fn start(port: &str, store: Arc<LogStore>) {
     let mut router = Router::new();
 
     router.add_route(Method::GET, "/", root_handler);
@@ -13,13 +15,15 @@ pub fn start(port: &str) {
     router.add_route(Method::GET, "/about", about_handler);
 
     let address = format!("127.0.0.1:{}", port);
-    let listener = TcpListener::bind(&address).expect("Failed to bind to port");
+    let listener = TcpListener::bind(&address).expect("Failed to bind");
 
     println!("🚀 DevTrace Engine running on http://{}", address);
 
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => handler::handle_connection(stream, &router),
+            Ok(stream) => {
+                handler::handle_connection(stream, &router, store.clone());
+            }
             Err(e) => eprintln!("❌ Connection failed: {}", e),
         }
     }
