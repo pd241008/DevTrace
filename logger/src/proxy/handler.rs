@@ -1,22 +1,27 @@
-use std::io::{BufRead, BufReader, Write, Read};
+use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
-use std::time::Instant;
 use std::collections::HashMap;
+use std::sync::Arc;
 
+use crate::api::routes;
+use crate::logger::store::LogStore;
+use crate::logger::collector::{now, build_log};
+use crate::models::request::Request;
+use crate::models::response::Response;
 use crate::api::router::Router;
-use crate::models::request_log::Request;
-use crate::logger::logger::log;
 
-pub fn handle_connection(mut stream: TcpStream, router: &Router) {
+pub fn handle_connection(
+    mut stream: TcpStream,
+    router: &Router,
+    store: Arc<LogStore>,
+) {
     let mut buf_reader = BufReader::new(&mut stream);
 
-    // ✅ READ REQUEST LINE (NO .lines())
     let mut request_line = String::new();
     if buf_reader.read_line(&mut request_line).is_err() {
         return;
     }
 
-    // ✅ HEADERS
     let mut headers = HashMap::new();
 
     loop {
@@ -27,43 +32,40 @@ pub fn handle_connection(mut stream: TcpStream, router: &Router) {
         }
 
         let line = line.trim().to_string();
-
         if line.is_empty() {
             break;
         }
 
-        if let Some((key, value)) = line.split_once(": ") {
-            headers.insert(key.to_string(), value.to_string());
+        if let Some((k, v)) = line.split_once(": ") {
+            headers.insert(k.to_string(), v.to_string());
         }
     }
 
-    // ✅ PARSE REQUEST
     if let Some(mut req) = Request::parse(&request_line) {
         req.headers = headers;
 
-        // ✅ BODY
-        if let Some(content_length) = req.headers.get("Content-Length") {
-            if let Ok(len) = content_length.parse::<usize>() {
-                let mut body_buf = vec![0; len];
+        let start_time = now();
 
-                if buf_reader.read_exact(&mut body_buf).is_ok() {
-                    req.body = Some(String::from_utf8_lossy(&body_buf).to_string());
-                }
+        // 🔥 API INTERCEPT
+        let response = if let Some(api_res) =
+            routes::handle_api(&req.path, store.clone())
+        {
+            Response {
+                status: 200,
+                body: api_res,
             }
-        }
+        } else {
+            router.handle_request(&req)
+        };
 
-        let start_time = Instant::now();
-
-        let response = router.handle_request(&req);
-
-        let latency = start_time.elapsed();
-
-        log(&req, &response, latency);
+        // 🔥 BUILD LOG
+        let log = build_log(req.clone(), response.clone(), start_time);
+        store.add(log);
 
         let _ = stream.write_all(response.to_http_string().as_bytes());
-
     } else {
-        let bad_req = "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\nBad Request";
-        let _ = stream.write_all(bad_req.as_bytes());
+        let _ = stream.write_all(
+            b"HTTP/1.1 400 Bad Request\r\n\r\nBad Request"
+        );
     }
 }

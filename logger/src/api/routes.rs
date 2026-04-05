@@ -1,4 +1,10 @@
-use crate::models::{request_log::Request, response_log::Response};
+//logger\src\api\route.rs
+use crate::models::{request::Request, response::Response};
+use crate::api::handler;
+use crate::logger::store::LogStore;
+use std::sync::Arc;
+
+
 
 pub fn root_handler(_req: &Request) -> Response {
     let body = r#"{
@@ -26,5 +32,14 @@ pub fn about_handler(_req: &Request) -> Response {
     Response {
         status: 200,
         body: "DevTrace Engine 🔥".to_string(),
+    }
+}
+
+
+pub fn handle_api(path: &str, store: Arc<LogStore>) -> Option<String> {
+    match path {
+        "/logs" => Some(handler::get_all_logs(store)),
+        "/logs/latest" => Some(handler::get_latest_logs(store)),
+        _ => None,
     }
 }

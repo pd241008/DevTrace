@@ -1,13 +1,13 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::logger::model::RequestLog;
 use crate::models::request::Request;
 use crate::models::response::Response;
-use crate::logger::model::RequestLog;
 
 pub fn now() -> u128 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis())
+        .map(|d| d.as_micros()) 
         .unwrap_or(0)
 }
 
