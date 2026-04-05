@@ -1,2 +1,2 @@
-pub mod request_log;
-pub mod response_log;
+pub mod request;
+pub mod response;

@@ -16,7 +16,7 @@ fn main() {
     println!("🔥 DevTrace Runner Started...");
 
     let mut child: Option<Child> = build_and_run();
-
+    
     loop {
         match rx.recv() {
             Ok(Ok(event)) => {

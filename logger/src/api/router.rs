@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use crate::models::{
-    request_log::{Method, Request},
-    response_log::Response,
+    request::{Method, Request},
+    response::Response,
 };
 
 // Handler now takes reference
