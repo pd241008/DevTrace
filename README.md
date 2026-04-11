@@ -6,15 +6,16 @@
 ![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 
-**DevTrace v2** is a high-performance, developer-centric observability platform designed to capture, analyze, replay, and introspect API traffic in real time. 
+**DevTrace** is a high-performance, developer-centric observability platform designed to capture, analyze, replay, and introspect API traffic in real time. 
 
-Unlike traditional logging tools, DevTrace operates as an **inline programmable proxy layer**, enabling developers to debug systems with production-grade fidelity.
+Unlike traditional logging tools, DevTrace operates as a **queryable observability engine core**, enabling developers to debug systems with production-grade fidelity.
 
 ---
 
 ## ⚡ Key Features
 
 - **🚀 Real-Time Interception**: Capture request-response cycles with zero-copy instrumentation.
+- **🔍 Query Engine**: Filter and sort logs using URL-based query parameters with a type-safe filtering system.
 - **🔁 Replay Engine**: Resend captured requests directly from the CLI to simulate and debug edge cases.
 - **🔌 Plugin Architecture**: Extend the processing pipeline with custom Rust-based analyzers.
 - **📊 Live Dashboard**: A modern Next.js interface for real-time traffic visualization and latency heatmaps.
@@ -116,11 +117,22 @@ devtrace replay --route /api/login --id <event-id>
 
 ## 🎯 Project Roadmap
 
-- [x] **Phase 1**: Core Request/Response interception & basic proxy logic.
-- [ ] **Phase 2**: Latency tracking, structured logging, and parallel plugin execution.
-- [ ] **Phase 3**: Multi-node ingestion via Kafka and persistent Event Store implementation.
-- [ ] **Phase 4**: Full Replay Engine CLI and Webhook integration.
-- [ ] **Phase 5**: Advanced Analytics Dashboard with Next.js & real-time WebSockets.
+- [x] **Phase 1**: Core Request/Response interception & proxy logic.
+- [x] **Phase 2**: Structured logging, latency tracking, and modular logging architecture.
+- [x] **Phase 3**: Queryable Log Engine
+  - Query parsing system (`/logs?key=value`)
+  - Strongly typed filtering (`LogFilter`)
+  - Store-level filtering & sorting
+  - Type-safe sorting (`SortBy` enum)
+  - Clean separation of handler, filter, and store layers
+- [ ] **Phase 4**: Advanced Query Engine
+  - JSON serialization with `serde`
+  - Pagination (`limit`, `offset`)
+  - Zero-copy filtering (iterator-based references)
+  - Validation & error handling system
+- [ ] **Phase 5**: Distributed ingestion (Kafka/NATS) + persistent Event Store
+- [ ] **Phase 6**: Replay Engine CLI + Webhook integrations
+- [ ] **Phase 7**: Real-time Analytics Dashboard (Next.js + WebSockets)
 
 ---
 
@@ -128,3 +140,4 @@ devtrace replay --route /api/login --id <event-id>
 This project is for internal developer observability. All rights reserved.
 
 Created by **@pd241008**
+
