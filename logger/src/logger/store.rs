@@ -1,31 +1,51 @@
-use std::sync::{Arc, Mutex};
+use crate::logger::model::RequestLog;
+use crate::logger::filter::{LogFilter, SortBy};
 
-use super::model::RequestLog;
-
-#[derive(Clone)]
 pub struct LogStore {
-    logs: Arc<Mutex<Vec<RequestLog>>>,
+    logs: Vec<RequestLog>,
 }
 
 impl LogStore {
     pub fn new() -> Self {
-        Self {
-            logs: Arc::new(Mutex::new(Vec::new())),
+        Self { logs: Vec::new() }
+    }
+
+    pub fn add(&mut self, log: RequestLog) {
+        self.logs.push(log);
+    }
+
+    pub fn get_all(&self) -> &Vec<RequestLog> {
+        &self.logs
+    }
+
+    pub fn get_filtered_logs(&self, filter: &LogFilter) -> Vec<RequestLog> {
+        let mut result: Vec<RequestLog> = self
+            .logs
+            .iter()
+            .filter(|log| {
+                let mut matches = true;
+
+                if let Some(ref method) = filter.method {
+                    matches = matches && &log.method == method;
+                }
+
+                if let Some(status) = filter.status {
+                    matches = matches && log.status == status;
+                }
+
+                matches
+            })
+            .cloned()
+            .collect();
+
+        if let Some(sort_by) = &filter.sort {
+            match sort_by {
+                SortBy::Duration => {
+                    result.sort_by(|a, b| b.duration.cmp(&a.duration));
+                }
+            }
         }
-    }
 
-    pub fn add(&self, log: RequestLog) {
-        let mut logs = self.logs.lock().unwrap();
-        logs.push(log);
-    }
-
-    pub fn get_all(&self) -> Vec<RequestLog> {
-        let logs = self.logs.lock().unwrap();
-        logs.clone()
-    }
-
-    pub fn get_one(&self, index: usize) -> Option<RequestLog> {
-        let logs = self.logs.lock().unwrap();
-        logs.get(index).cloned()
+        result
     }
 }
