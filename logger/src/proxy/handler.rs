@@ -1,7 +1,7 @@
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::api::routes;
 use crate::logger::store::LogStore;
@@ -13,7 +13,7 @@ use crate::api::router::Router;
 pub fn handle_connection(
     mut stream: TcpStream,
     router: &Router,
-    store: Arc<LogStore>,
+    store: Arc<Mutex<LogStore>>,
 ) {
     let mut buf_reader = BufReader::new(&mut stream);
 
@@ -58,9 +58,13 @@ pub fn handle_connection(
             router.handle_request(&req)
         };
 
-        // 🔥 BUILD LOG
+
         let log = build_log(req.clone(), response.clone(), start_time);
-        store.add(log);
+        
+    
+        if let Ok(mut locked_store) = store.lock() {
+            locked_store.add(log);
+        }
 
         let _ = stream.write_all(response.to_http_string().as_bytes());
     } else {

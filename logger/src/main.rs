@@ -5,10 +5,11 @@ mod logger;
 
 use crate::proxy::server;
 use crate::logger::store::LogStore;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 fn main() {
-    let store = Arc::new(LogStore::new());
-
+    // Safely wrap the store for multi-threaded mutation
+    let store = Arc::new(Mutex::new(LogStore::new()));
+    
     server::start("8080", store);
 }
