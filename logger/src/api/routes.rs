@@ -2,8 +2,7 @@
 use crate::models::{request::Request, response::Response};
 use crate::api::handler;
 use crate::logger::store::LogStore;
-use std::sync::Arc;
-
+use std::sync::{Arc, Mutex};
 
 
 pub fn root_handler(_req: &Request) -> Response {
@@ -36,7 +35,7 @@ pub fn about_handler(_req: &Request) -> Response {
 }
 
 
-pub fn handle_api(path: &str, store: Arc<LogStore>) -> Option<String> {
+pub fn handle_api(path: &str, store: Arc<Mutex<LogStore>>) -> Option<String> {
     match path {
         "/logs" => Some(handler::get_all_logs(store)),
         "/logs/latest" => Some(handler::get_latest_logs(store)),

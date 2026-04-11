@@ -1,13 +1,12 @@
 use std::net::TcpListener;
-use std::sync::Arc;
-
 use crate::logger::store::LogStore;
 use crate::models::request::Method;
 use crate::proxy::handler;
 use crate::api::router::Router;
 use crate::api::routes::{root_handler, hello_handler, about_handler};
+use std::sync::{Arc, Mutex};
 
-pub fn start(port: &str, store: Arc<LogStore>) {
+pub fn start(port: &str, store: Arc<Mutex<LogStore>>) {
     let mut router = Router::new();
 
     router.add_route(Method::GET, "/", root_handler);
