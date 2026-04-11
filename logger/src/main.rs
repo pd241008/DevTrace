@@ -5,19 +5,11 @@ mod logger;
 
 use crate::proxy::server;
 use crate::logger::store::LogStore;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 fn main() {
-    let store = Arc::new(LogStore::new());
-    if request.path.starts_with("/logs") {
-    if request.path == "/logs/latest" {
+    // Safely wrap the store for multi-threaded mutation
+    let store = Arc::new(Mutex::new(LogStore::new()));
     
     server::start("8080", store);
-    } else {
-        let response = handle_logs(&request.path, &store);
-        stream.write_all(response.to_http_string().as_bytes()).unwrap();
-    }
-
-}
-
 }

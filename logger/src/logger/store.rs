@@ -26,11 +26,11 @@ impl LogStore {
                 let mut matches = true;
 
                 if let Some(ref method) = filter.method {
-                    matches = matches && &log.method == method;
+                matches = matches && &log.request.method == method;
                 }
 
-                if let Some(status) = filter.status {
-                    matches = matches && log.status == status;
+               if let Some(status) = filter.status {
+                matches = matches && log.response.status == status;
                 }
 
                 matches
@@ -40,9 +40,10 @@ impl LogStore {
 
         if let Some(sort_by) = &filter.sort {
             match sort_by {
-                SortBy::Duration => {
-                    result.sort_by(|a, b| b.duration.cmp(&a.duration));
-                }
+               SortBy::Duration => {
+   
+    result.sort_by(|a, b| b.duration_ms.cmp(&a.duration_ms)); 
+}
             }
         }
 
