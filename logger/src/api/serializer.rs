@@ -1,5 +1,6 @@
 use crate::logger::model::RequestLog;
 
+
 pub fn to_json(logs: Vec<RequestLog>) -> String {
     let mut result = String::from("[");
 

@@ -1,3 +1,4 @@
+use serde::Serialize;
 use crate::models::request::Request;
 use crate::models::response::Response;
 

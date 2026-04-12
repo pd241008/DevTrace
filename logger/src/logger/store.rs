@@ -1,5 +1,6 @@
 use crate::logger::model::RequestLog;
 use crate::logger::filter::{LogFilter, SortBy};
+use crate::
 
 pub struct LogStore {
     logs: Vec<RequestLog>,
@@ -18,35 +19,43 @@ impl LogStore {
         &self.logs
     }
 
-    pub fn get_filtered_logs(&self, filter: &LogFilter) -> Vec<RequestLog> {
-        let mut result: Vec<RequestLog> = self
+pub fn get_filtered_logs(&self, filter: &LogFilter) -> Vec<RequestLog> {
+  
+        let mut matching_refs: Vec<&RequestLog> = self
             .logs
             .iter()
             .filter(|log| {
                 let mut matches = true;
 
                 if let Some(ref method) = filter.method {
-                matches = matches && &log.request.method == method;
+                    matches = matches && &log.request.method == method;
                 }
 
-               if let Some(status) = filter.status {
-                matches = matches && log.response.status == status;
+                if let Some(status) = filter.status {
+                    matches = matches && log.response.status == status;
                 }
 
                 matches
             })
-            .cloned()
-            .collect();
-
+            .collect(); 
+ 
         if let Some(sort_by) = &filter.sort {
             match sort_by {
-               SortBy::Duration => {
-   
-    result.sort_by(|a, b| b.duration_ms.cmp(&a.duration_ms)); 
-}
+                SortBy::Duration => {
+                    matching_refs.sort_by(|a, b| b.duration_ms.cmp(&a.duration_ms)); 
+                }
             }
         }
 
-        result
+        let offset = filter.offset.unwrap_or(0);
+        let limit = filter.limit.unwrap_or(50);
+        
+        matching_refs
+            .into_iter() 
+            .skip(offset) 
+            .take(limit)  
+            .cloned()     
+            .collect()    
     }
+
 }
