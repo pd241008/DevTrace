@@ -1,69 +1,61 @@
 use crate::logger::store::LogStore;
-use crate::logger::model::RequestLog;
-use crate::models::request::Method;
+use crate::logger::filter::build_filter;
 use crate::models::response::Response;
-use crate::utils::query_parser::parse_query;
+use crate::utils::query_parser::parse_query; 
+use std::sync::{Arc, Mutex};
 
-#[derive(Debug)]
-pub struct LogFilter {
-    pub method: Option<Method>,
-    pub status: Option<u16>,
-    pub sort: Option<String>,
-}
-
-pub fn handle_logs(path: &str, store: &LogStore) -> Response {
+pub fn handle_logs(path: &str, store: Arc<Mutex<LogStore>>) -> Response {
+  
     let query_map = parse_query(path);
-    let filter = build_filter(&query_map);
+    
+    
+    let filter = match build_filter(&query_map) {
+        Ok(valid_filter) => valid_filter,
+        Err(error_msg) => {
+       
+            return Response {
+                status: 400,
+                body: format!("{{\"error\": \"{}\"}}", error_msg),
+            };
+        }
+    };
+    if let Ok(locked_store) = store.lock() {
+        let logs = locked_store.get_filtered_logs(&filter);
 
-    let logs = store.get_filtered_logs(&filter);
+        let json = serde_json::to_string(&logs).unwrap_or_else(|_| "[]".to_string());
 
-    let json = logs_to_json(&logs);
+        Response {
+            status: 200,
+            body: json,
+        }
+    } else {
 
-    Response {
-        status: 200,
-        body: json,
-    }
-}
-
-fn build_filter(query: &std::collections::HashMap<String, String>) -> LogFilter {
-    let method = query.get("method").and_then(|m| match m.as_str() {
-        "GET" => Some(Method::GET),
-        "POST" => Some(Method::POST),
-        _ => None,
-    });
-
-    let status = query
-        .get("status")
-        .and_then(|s| s.parse::<u16>().ok());
-
-    let sort = query.get("sort").cloned();
-
-    LogFilter {
-        method,
-        status,
-        sort,
-    }
-}
-
-fn logs_to_json(logs: &Vec<RequestLog>) -> String {
-    let mut out = String::from("[");
-
-    for (i, log) in logs.iter().enumerate() {
-        let entry = format!(
-            "{{\"method\":\"{:?}\",\"path\":\"{}\",\"status\":{},\"duration\":{}}}",
-            log.method,
-            log.path,
-            log.status,
-            log.duration
-        );
-
-        out.push_str(&entry);
-
-        if i != logs.len() - 1 {
-            out.push(',');
+        Response {
+            status: 500,
+            body: "{\"error\": \"Internal Server Error\"}".to_string(),
         }
     }
+}
 
-    out.push(']');
-    out
+
+pub fn get_latest_logs(store: Arc<Mutex<LogStore>>) -> Response {
+    if let Ok(locked_store) = store.lock() {
+        let logs = locked_store.get_all();
+
+
+        let json = match logs.last() {
+            Some(log) => serde_json::to_string(log).unwrap_or_else(|_| "{}".to_string()),
+            None => "{}".to_string(),
+        };
+
+        Response {
+            status: 200,
+            body: json,
+        }
+    } else {
+        Response {
+            status: 500,
+            body: "{\"error\": \"Internal Server Error\"}".to_string(),
+        }
+    }
 }
