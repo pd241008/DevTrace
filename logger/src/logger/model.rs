@@ -2,7 +2,7 @@ use serde::Serialize;
 use crate::models::request::Request;
 use crate::models::response::Response;
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Clone)]
 pub struct RequestLog {
     pub request: Request,
     pub response: Response,
@@ -10,3 +10,5 @@ pub struct RequestLog {
     pub end_time: u128,
     pub duration_ms: u128,
 }
+
+

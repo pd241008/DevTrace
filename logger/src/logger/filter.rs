@@ -42,7 +42,10 @@ pub fn build_filter(query: &HashMap<String, String>) -> Result<LogFilter, String
    
     let limit = query.get("limit").and_then(|s| s.parse::<usize>().ok());
     let offset = query.get("offset").and_then(|s| s.parse::<usize>().ok());
-    let sort = query.get("sort").cloned();
+    let sort = query.get("sort").and_then(|s| match s.to_lowercase().as_str() {
+        "duration" => Some(SortBy::Duration),
+        _ => None,
+    });
 
    
     Ok(LogFilter {
