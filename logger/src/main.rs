@@ -2,6 +2,7 @@ mod api;
 mod models;
 mod proxy;
 mod logger;
+mod utils;
 
 use crate::proxy::server;
 use crate::logger::store::LogStore;
