@@ -1,12 +1,15 @@
+use serde::Serialize;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize)]
 pub enum Method {
     GET,
     POST,
+    PUT,
+    DELETE,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Request {
     pub method: Method,
     pub path: String,
@@ -22,6 +25,8 @@ impl Request {
         let method = match parts.next()? {
             "GET" => Method::GET,
             "POST" => Method::POST,
+            "PUT" => Method::PUT,
+            "DELETE" => Method::DELETE,
             _ => return None,
         };
 

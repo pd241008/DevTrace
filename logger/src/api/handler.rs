@@ -1,6 +1,9 @@
 use crate::logger::store::LogStore;
 use crate::api::serializer;
 use std::sync::{Arc, Mutex};
+use crate::models::response::Response;
+use crate::logger::filter::build_filter;
+use crate::utils::query_parsers::parse_query; 
 
 pub fn get_all_logs(store: Arc<Mutex<LogStore>>) -> String {
     if let Ok(locked_store) = store.lock() {
