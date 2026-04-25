@@ -1,7 +1,7 @@
-use std::io::{BufRead, BufReader, Write};
-use std::net::TcpStream;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::TcpStream;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::api::routes;
 use crate::logger::store::LogStore;
@@ -10,15 +10,16 @@ use crate::models::request::Request;
 use crate::models::response::Response;
 use crate::api::router::Router;
 
-pub fn handle_connection(
+pub async fn handle_connection(
     mut stream: TcpStream,
     router: &Router,
-    store: Arc<Mutex<LogStore>>,
+    store: Arc<LogStore>,
 ) {
-    let mut buf_reader = BufReader::new(&mut stream);
+    let (reader, mut writer) = stream.split();
+    let mut buf_reader = BufReader::new(reader);
 
     let mut request_line = String::new();
-    if buf_reader.read_line(&mut request_line).is_err() {
+    if buf_reader.read_line(&mut request_line).await.is_err() {
         return;
     }
 
@@ -27,7 +28,7 @@ pub fn handle_connection(
     loop {
         let mut line = String::new();
 
-        if buf_reader.read_line(&mut line).is_err() {
+        if buf_reader.read_line(&mut line).await.is_err() {
             return;
         }
 
@@ -46,9 +47,9 @@ pub fn handle_connection(
 
         let start_time = now();
 
-        // 🔥 API INTERCEPT
+        // 🔥 API INTERCEPT — check if this is a /logs request
         let response = if let Some(api_res) =
-            routes::handle_api(&req.path, store.clone())
+            routes::handle_api(&req.path, store.clone()).await
         {
             Response {
                 status: 200,
@@ -58,18 +59,17 @@ pub fn handle_connection(
             router.handle_request(&req)
         };
 
-
+        // Build the log entry
         let log = build_log(req.clone(), response.clone(), start_time);
-        
-    
-        if let Ok(mut locked_store) = store.lock() {
-            locked_store.add(log);
-        }
 
-        let _ = stream.write_all(response.to_http_string().as_bytes());
+        // 🚀 The Fast Write — toss the log onto the conveyor belt
+        // No mutex lock, no disk I/O. This returns in nanoseconds.
+        store.add(log);
+
+        let _ = writer.write_all(response.to_http_string().as_bytes()).await;
     } else {
-        let _ = stream.write_all(
+        let _ = writer.write_all(
             b"HTTP/1.1 400 Bad Request\r\n\r\nBad Request"
-        );
+        ).await;
     }
 }

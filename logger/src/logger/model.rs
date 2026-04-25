@@ -9,6 +9,7 @@ pub struct RequestLog {
     pub start_time: u128,
     pub end_time: u128,
     pub duration_ms: u128,
+    pub timestamp_human: String,
 }
 
 
