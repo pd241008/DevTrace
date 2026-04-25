@@ -29,27 +29,27 @@ pub fn root_handler(_req: &Request) -> Response {
 }
 
 /// API route dispatcher — routes incoming traffic to the divided endpoint modules.
-pub async fn handle_api(path: &str, store: Arc<LogStore>) -> Option<String> {
+pub async fn handle_api(path: &str, store: Arc<LogStore>) -> Option<Response> {
     // Strip query string for route matching
     let base_path = path.split('?').next().unwrap_or(path);
 
     match base_path {
         "/logs" => {
             let response = logs::handle_logs(path, store).await;
-            Some(response.body)
+            Some(response)
         }
         "/logs/latest" => {
             let response = logs::get_latest_logs(store).await;
-            Some(response.body)
+            Some(response)
         }
         "/hello" => {
             // We can also route static-ish handlers through here if needed
             let response = info::hello_handler(&Request::parse("GET /hello HTTP/1.1").unwrap());
-            Some(response.body)
+            Some(response)
         }
         "/about" => {
             let response = info::about_handler(&Request::parse("GET /about HTTP/1.1").unwrap());
-            Some(response.body)
+            Some(response)
         }
         _ => None,
     }

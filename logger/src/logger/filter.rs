@@ -40,12 +40,35 @@ pub fn build_filter(query: &HashMap<String, String>) -> Result<LogFilter, String
     }?; 
 
    
-    let limit = query.get("limit").and_then(|s| s.parse::<usize>().ok());
-    let offset = query.get("offset").and_then(|s| s.parse::<usize>().ok());
-    let sort = query.get("sort").and_then(|s| match s.to_lowercase().as_str() {
-        "duration" => Some(SortBy::Duration),
-        _ => None,
-    });
+    let limit = match query.get("limit") {
+        Some(s) => match s.parse::<usize>() {
+            Ok(val) => {
+                if val > 1000 {
+                    Err("Limit cannot exceed 1000".to_string())
+                } else {
+                    Ok(Some(val))
+                }
+            },
+            Err(_) => Err(format!("Invalid limit: '{}'. Must be a positive integer.", s)),
+        },
+        None => Ok(None),
+    }?;
+
+    let offset = match query.get("offset") {
+        Some(s) => match s.parse::<usize>() {
+            Ok(val) => Ok(Some(val)),
+            Err(_) => Err(format!("Invalid offset: '{}'. Must be a positive integer.", s)),
+        },
+        None => Ok(None),
+    }?;
+
+    let sort = match query.get("sort") {
+        Some(s) => match s.to_lowercase().as_str() {
+            "duration" => Ok(Some(SortBy::Duration)),
+            invalid => Err(format!("Invalid sort parameter: '{}'. Allowed: duration", invalid)),
+        },
+        None => Ok(None),
+    }?;
 
    
     Ok(LogFilter {
