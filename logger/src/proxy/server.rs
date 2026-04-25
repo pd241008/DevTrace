@@ -1,27 +1,34 @@
-use std::net::TcpListener;
+use tokio::net::TcpListener;
 use crate::logger::store::LogStore;
 use crate::models::request::Method;
 use crate::proxy::handler;
 use crate::api::router::Router;
-use crate::api::routes::{root_handler, hello_handler, about_handler};
-use std::sync::{Arc, Mutex};
+use crate::api::routes::root_handler;
+use std::sync::Arc;
 
-pub fn start(port: &str, store: Arc<Mutex<LogStore>>) {
+pub async fn start(port: &str, store: Arc<LogStore>) {
     let mut router = Router::new();
 
+    // The root handler stays in routes.rs as requested
     router.add_route(Method::GET, "/", root_handler);
-    router.add_route(Method::GET, "/hello", hello_handler);
-    router.add_route(Method::GET, "/about", about_handler);
+
+    let router = Arc::new(router);
 
     let address = format!("127.0.0.1:{}", port);
-    let listener = TcpListener::bind(&address).expect("Failed to bind");
+    let listener = TcpListener::bind(&address)
+        .await
+        .expect("Failed to bind");
 
     println!("🚀 DevTrace Engine running on http://{}", address);
 
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {
-                handler::handle_connection(stream, &router, store.clone());
+    loop {
+        match listener.accept().await {
+            Ok((stream, _addr)) => {
+                let store = store.clone();
+                let router = router.clone();
+                tokio::spawn(async move {
+                    handler::handle_connection(stream, &router, store).await;
+                });
             }
             Err(e) => eprintln!("❌ Connection failed: {}", e),
         }
