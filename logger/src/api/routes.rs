@@ -1,9 +1,6 @@
 //logger\src\api\route.rs
 use crate::models::{request::Request, response::Response};
 use crate::api::endpoints::{logs, info};
-use crate::logger::store::LogStore;
-use std::sync::Arc;
-
 /// The root handler remains in this file as the primary entry point documentation.
 pub fn root_handler(_req: &Request) -> Response {
     let body = r#"{
@@ -21,21 +18,28 @@ pub fn root_handler(_req: &Request) -> Response {
         "GET /hello": "Friendly connectivity test",
         "GET /about": "Detailed documentation and Query Engine guide",
         "GET /logs": "Retrieve audit logs (supports SQL-backed filtering)",
-        "GET /logs/latest": "Peek at the most recent captured event"
+        "GET /logs/latest": "Peek at the most recent captured event",
+        "POST /api/ingest": "Universal Gate: Ingest custom JSON logs from external Agents (Node.js, Python, etc.)"
     }
 }"#.to_string();
 
     Response { status: 200, body }
 }
 
-/// API route dispatcher — routes incoming traffic to the divided endpoint modules.
-pub async fn handle_api(path: &str, store: Arc<LogStore>) -> Option<Response> {
-    // Strip query string for route matching
-    let base_path = path.split('?').next().unwrap_or(path);
+
+pub async fn handle_api(req: &crate::models::request::Request, store: std::sync::Arc<crate::logger::store::LogStore>) -> Option<crate::models::response::Response> {
+    let base_path = req.path.split('?').next().unwrap_or(&req.path);
+    
+
+
+    if base_path == "/api/ingest" && req.method == crate::models::request::Method::POST {
+        return Some(crate::api::endpoints::ingest::ingest_log(req, store).await);
+    }
+
 
     match base_path {
         "/logs" => {
-            let response = logs::handle_logs(path, store).await;
+            let response = logs::handle_logs(&req.path,store).await;
             Some(response)
         }
         "/logs/latest" => {

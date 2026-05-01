@@ -1,8 +1,8 @@
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use crate::models::request::Request;
 use crate::models::response::Response;
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize,Deserialize, Clone)]
 pub struct RequestLog {
     pub request: Request,
     pub response: Response,

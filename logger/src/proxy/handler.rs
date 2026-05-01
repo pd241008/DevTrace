@@ -1,4 +1,4 @@
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt,AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpStream;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -22,32 +22,40 @@ pub async fn handle_connection(
     }
 
     let mut headers = HashMap::new();
-
     loop {
         let mut line = String::new();
-
-        if buf_reader.read_line(&mut line).await.is_err() {
-            return;
-        }
-
+        if buf_reader.read_line(&mut line).await.is_err() { return; }
         let line = line.trim().to_string();
-        if line.is_empty() {
-            break;
-        }
-
+        if line.is_empty() { break; } 
         if let Some((k, v)) = line.split_once(": ") {
             headers.insert(k.to_string(), v.to_string());
         }
     }
 
+    
+    let mut body_string = None;
+    if let Some(len_str) = headers.get("Content-Length") {
+        if let Ok(len) = len_str.parse::<usize>() {
+            let mut body_buf = vec![0; len];
+           
+            if buf_reader.read_exact(&mut body_buf).await.is_ok() {
+                body_string = Some(String::from_utf8_lossy(&body_buf).to_string());
+            }
+        }
+    }
+
+
     if let Some(mut req) = Request::parse(&request_line) {
         req.headers = headers;
+        req.body = body_string; 
 
         let start_time = now();
+        
+      
 
-        // 🔥 API INTERCEPT
+  
         let response = if let Some(api_res) =
-            routes::handle_api(&req.path, store.clone()).await
+            routes::handle_api(&req, store.clone()).await
         {
             api_res
         } else {
