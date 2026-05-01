@@ -29,6 +29,7 @@ fn main() {
                     }
 
                     child = build_and_run();
+                    while let Ok(_) = rx.try_recv() {}
                 }
             }
             Ok(Err(e)) => eprintln!("Watch error: {:?}", e),
@@ -60,6 +61,7 @@ fn build_and_run() -> Option<Child> {
     };
 
     Command::new(binary)
+        .args(["serve"])
         .spawn()
         .ok()
 }

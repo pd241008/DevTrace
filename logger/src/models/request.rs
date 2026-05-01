@@ -1,7 +1,7 @@
-use serde::Serialize;
+use serde::{Serialize,Deserialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize,Deserialize )]
 pub enum Method {
     GET,
     POST,
@@ -9,7 +9,7 @@ pub enum Method {
     DELETE,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize,Deserialize)]
 pub struct Request {
     pub method: Method,
     pub path: String,
