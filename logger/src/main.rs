@@ -1,3 +1,11 @@
+mod api;
+mod models;
+mod proxy;
+mod logger;
+mod utils;
+mod replayengine;
+
+
 use replayengine::commands::{Cli, Commands};
 use clap::Parser;
 use crate::proxy::server;
