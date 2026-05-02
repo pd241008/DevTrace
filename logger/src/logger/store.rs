@@ -4,24 +4,15 @@ use sqlx::sqlite::{SqlitePool, SqlitePoolOptions};
 use sqlx::Row;
 use tokio::sync::mpsc;
 
-/// LogStore — The Conveyor Belt
-///
-/// No longer holds data in memory. Instead, it holds:
-///   - A `Sender` half of a Tokio MPSC channel (the conveyor belt input)
-///   - A `SqlitePool` for reading logs via SQL queries
-///
-/// Writes are non-blocking: the proxy tosses a log onto the belt via `try_send`.
-/// A background worker (spawned at startup) pulls logs off the belt and INSERTs them.
-/// Reads go directly to SQLite with dynamic SQL queries.
 pub struct LogStore {
     tx: mpsc::Sender<RequestLog>,
     pool: SqlitePool,
 }
 
 impl LogStore {
-    /// Boot Sequence: connect to SQLite, ensure schema, build the belt, spawn the worker.
+   
     pub async fn new() -> Self {
-        // ── Step 1a: Connect to the Database ──
+    
         let db_dir = "database";
         let db_path = "database/devtrace.db";
 
@@ -39,7 +30,7 @@ impl LogStore {
 
         println!("✅ SQLite connection pool established.");
 
-        // ── Step 1b: Ensure the Schema ──
+       
         sqlx::query(
             "CREATE TABLE IF NOT EXISTS logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,10 +48,10 @@ impl LogStore {
 
         println!("✅ Schema verified — logs table ready.");
 
-        // ── Step 1c: Build the Conveyor Belt ──
+  
         let (tx, mut rx) = mpsc::channel::<RequestLog>(10_000);
 
-        // ── Step 2: Spawn the Background Worker ──
+      
         let worker_pool = pool.clone();
         tokio::spawn(async move {
             println!("👷 Background Event Worker started. Waiting for logs...");
@@ -97,26 +88,19 @@ impl LogStore {
         Self { tx, pool }
     }
 
-    /// Step 3: The Fast Write — toss the log onto the conveyor belt.
-    ///
-    /// This is NON-BLOCKING. No mutex, no disk I/O.
-    /// If the belt is full (10,000 logs backed up), the log is dropped with a warning.
+ 
     pub fn add(&self, log: RequestLog) {
         if let Err(e) = self.tx.try_send(log) {
             eprintln!("⚠️  Conveyor belt full! Dropping log: {}", e);
         }
     }
 
-    /// Step 4: The Indexed Read — translates LogFilter into a dynamic SQL query.
-    ///
-    /// Called by the API when the dashboard requests filtered logs.
-    /// Instead of iterating a Vec, this builds a SQL WHERE clause and lets
-    /// SQLite's indexed engine do the heavy lifting.
+  
     pub async fn get_filtered_logs(&self, filter: &LogFilter) -> Vec<RequestLog> {
         let mut query = String::from("SELECT method, path, status, duration_ms, start_time, end_time FROM logs WHERE 1=1");
         let mut bind_values_str: Vec<String> = Vec::new();
         let mut bind_values_int: Vec<i64> = Vec::new();
-        let mut param_order: Vec<&str> = Vec::new(); // track order: "str" or "int"
+        let mut param_order: Vec<&str> = Vec::new(); 
 
         if let Some(ref method) = filter.method {
             query.push_str(" AND method = ?");
@@ -130,7 +114,7 @@ impl LogStore {
             param_order.push("int");
         }
 
-        // Sorting
+       
         if let Some(sort_by) = &filter.sort {
             match sort_by {
                 SortBy::Duration => {
@@ -141,12 +125,12 @@ impl LogStore {
             query.push_str(" ORDER BY id DESC");
         }
 
-        // Pagination
+   
         let limit = filter.limit.unwrap_or(50);
         let offset = filter.offset.unwrap_or(0);
         query.push_str(&format!(" LIMIT {} OFFSET {}", limit, offset));
 
-        // Build and execute query with dynamic binds
+       
         let mut q = sqlx::query(&query);
         let mut str_idx = 0;
         let mut int_idx = 0;
@@ -172,7 +156,7 @@ impl LogStore {
             }
         };
 
-        // Convert rows back into RequestLog structs
+        
         rows.iter()
             .filter_map(|row| {
                 let method_str: String = row.get("method");
@@ -211,7 +195,7 @@ impl LogStore {
             .collect()
     }
 
-    /// Fetch the single most recent log entry.
+   
     pub async fn get_latest(&self) -> Option<RequestLog> {
         let filter = LogFilter {
             method: None,
@@ -221,5 +205,46 @@ impl LogStore {
             offset: Some(0),
         };
         self.get_filtered_logs(&filter).await.into_iter().next()
+    }
+
+    pub async fn get_log_by_id(&self, id: u64) -> Option<RequestLog> {
+        let query = "SELECT method, path, status, duration_ms, start_time, end_time FROM logs WHERE id = ?";
+        let row = match sqlx::query(query).bind(id as i64).fetch_optional(&self.pool).await {
+            Ok(Some(row)) => row,
+            _ => return None,
+        };
+
+        let method_str: String = row.get("method");
+        let path: String = row.get("path");
+        let status: i64 = row.get("status");
+        let duration_ms: i64 = row.get("duration_ms");
+        let start_time: i64 = row.get("start_time");
+        let end_time: i64 = row.get("end_time");
+
+        let method = match method_str.as_str() {
+            "GET" => crate::models::request::Method::GET,
+            "POST" => crate::models::request::Method::POST,
+            "PUT" => crate::models::request::Method::PUT,
+            "DELETE" => crate::models::request::Method::DELETE,
+            _ => return None,
+        };
+
+        Some(RequestLog {
+            request: crate::models::request::Request {
+                method,
+                path,
+                headers: std::collections::HashMap::new(),
+                body: None, 
+                timestamp: start_time as u128,
+            },
+            response: crate::models::response::Response {
+                status: status as u16,
+                body: String::new(),
+            },
+            start_time: start_time as u128,
+            end_time: end_time as u128,
+            duration_ms: duration_ms as u128,
+            timestamp_human: crate::logger::collector::format_timestamp(start_time as u128),
+        })
     }
 }
