@@ -3,7 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const VERSION = 'v0.1.0'; // Must match the GitHub Release version
+const packageJson = require('./package.json');
+const VERSION = 'v' + packageJson.version; // Dynamically matches package version
 const REPO = 'pd241008/DevTrace';
 
 // Allow overriding the download URL for testing

@@ -12,7 +12,7 @@ This package automatically downloads and installs the high-performance Rust prox
 ## Installation
 
 ```bash
-npm install devtrace
+npm install @pd241008/devtrace
 ```
 
 *Note: The postinstall script will automatically download the correct binary (`devtrace-linux-x64`, `devtrace-macos-arm64`, etc.) from the DevTrace GitHub releases.*
@@ -22,7 +22,7 @@ npm install devtrace
 You can programmatically start the DevTrace proxy from within your Node.js application.
 
 ```javascript
-const { DevTrace } = require('devtrace');
+const { DevTrace } = require('@pd241008/devtrace');
 
 // 1. Initialize the DevTrace Wrapper
 const devtrace = new DevTrace({
@@ -59,6 +59,23 @@ You can also trigger replays programmatically:
 devtrace.replay(42)
   .then(() => console.log('Replay finished'))
   .catch((err) => console.error(err));
+```
+
+## CLI Usage (npx)
+
+Because the package includes a binary wrapper, you can also run the proxy directly from your terminal using `npx`:
+
+```bash
+# Start the proxy server
+npx @pd241008/devtrace serve
+
+# Replay a request by ID
+npx @pd241008/devtrace replay 42
+```
+
+Alternatively, if installed globally (`npm install -g @pd241008/devtrace`), you can simply run:
+```bash
+devtrace serve
 ```
 
 ## Development & Troubleshooting

@@ -71,7 +71,27 @@ Ensure you have the following installed:
 
 ### 2. Component Installation
 
-#### 🦀 Logger (Rust Proxy)
+#### 📦 Install via NPM (Recommended for Node.js / Express)
+You can seamlessly run the DevTrace proxy in any Node.js environment without manually compiling Rust.
+
+```bash
+npm install @pd241008/devtrace
+```
+*This automatically downloads the pre-built, ultra-fast Rust proxy for your specific OS and architecture!*
+
+**Start the proxy from your terminal:**
+```bash
+npx @pd241008/devtrace serve
+```
+
+**Or start it programmatically in your Express app:**
+```javascript
+const { DevTrace } = require('@pd241008/devtrace');
+const proxy = new DevTrace();
+proxy.start(); // Spawns the Rust Engine in the background
+```
+
+#### 🦀 Build from Source (Rust Logger)
 ```bash
 cd logger
 cargo build --release
