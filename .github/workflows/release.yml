@@ -1,0 +1,75 @@
+name: Build and Release DevTrace Binaries
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger when pushing tags like v0.1.0
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build for ${{ matrix.os }} (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: devtrace
+            release_name: devtrace-linux-x64
+            cross: false
+
+          # macOS x64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: devtrace
+            release_name: devtrace-macos-x64
+            cross: false
+
+          # macOS arm64 (Apple Silicon)
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: devtrace
+            release_name: devtrace-macos-arm64
+            cross: false
+
+          # Windows x64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: devtrace.exe
+            release_name: devtrace-win32-x64.exe
+            cross: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build Binary
+        working-directory: ./logger
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Rename Binary (Unix)
+        if: matrix.os != 'windows-latest'
+        run: mv logger/target/${{ matrix.target }}/release/${{ matrix.artifact_name }} logger/target/${{ matrix.target }}/release/${{ matrix.release_name }}
+
+      - name: Rename Binary (Windows)
+        if: matrix.os == 'windows-latest'
+        run: mv logger/target/${{ matrix.target }}/release/${{ matrix.artifact_name }} logger/target/${{ matrix.target }}/release/${{ matrix.release_name }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: logger/target/${{ matrix.target }}/release/${{ matrix.release_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

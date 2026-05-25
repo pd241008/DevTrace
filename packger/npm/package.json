@@ -1,0 +1,24 @@
+{
+  "name": "@pd241008/devtrace",
+  "version": "0.1.0",
+  "description": "DevTrace - Distributed Developer Observability Engine (Node/Express Wrapper)",
+  "main": "index.js",
+  "bin": {
+    "devtrace": "./cli.js"
+  },
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "keywords": [
+    "observability",
+    "devtrace",
+    "logging",
+    "proxy",
+    "express"
+  ],
+  "author": "pd241008",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
